@@ -14,7 +14,7 @@ export const useSagaGamification = (language: 'en' | 'es') => {
   const [mission, setMission] = useState<Saga | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Visuals & Feedback
   const [isImageLoading, setIsImageLoading] = useState(false);
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
@@ -38,23 +38,23 @@ export const useSagaGamification = (language: 'en' | 'es') => {
   const startLoadingCycle = useCallback(() => {
     const messages = t('loadingPhases', language) as string[];
     if (!messages || !Array.isArray(messages)) {
-        setLoadingMessage("Loading...");
-        return;
+      setLoadingMessage("Loading...");
+      return;
     }
     let index = 0;
     setLoadingMessage(messages[0]);
     if (loadingIntervalRef.current) clearInterval(loadingIntervalRef.current);
     loadingIntervalRef.current = setInterval(() => {
-        if (!isMountedRef.current) return;
-        index = (index + 1) % messages.length;
-        setLoadingMessage(messages[index]);
+      if (!isMountedRef.current) return;
+      index = (index + 1) % messages.length;
+      setLoadingMessage(messages[index]);
     }, 2000);
   }, [language]);
 
   const stopLoadingCycle = useCallback(() => {
     if (loadingIntervalRef.current) {
-        clearInterval(loadingIntervalRef.current);
-        loadingIntervalRef.current = null;
+      clearInterval(loadingIntervalRef.current);
+      loadingIntervalRef.current = null;
     }
   }, []);
 
@@ -64,7 +64,7 @@ export const useSagaGamification = (language: 'en' | 'es') => {
       setError(t('app.errorRequired', language));
       return;
     }
-    
+
     setIsLoading(true);
     startLoadingCycle();
     setError(null);
@@ -77,31 +77,31 @@ export const useSagaGamification = (language: 'en' | 'es') => {
     try {
       const result = await generateSaga({ ...sagaInput, tasks: nonEmptyTasks }, language);
       if (!isMountedRef.current) return;
-      
+
       setMission(result);
       setIsImageLoading(true);
-      
+
       // Async Image Generation
       generateScenarioImage(sagaInput.theme, result.scenario)
         .then((imageUrl) => {
-           if (!isMountedRef.current) return;
-           if (imageUrl) {
-             setMission(prev => prev ? { ...prev, imageUrl } : null);
-             const img = new Image();
-             img.src = imageUrl;
-             img.onload = () => {
-                 if (!isMountedRef.current) return;
-                 setBackgroundImage(imageUrl);
-                 setBackgroundOpacity(1);
-                 setIsImageLoading(false);
-             };
-           } else {
-             setIsImageLoading(false);
-           }
+          if (!isMountedRef.current) return;
+          if (imageUrl) {
+            setMission(prev => prev ? { ...prev, imageUrl } : null);
+            const img = new Image();
+            img.src = imageUrl;
+            img.onload = () => {
+              if (!isMountedRef.current) return;
+              setBackgroundImage(imageUrl);
+              setBackgroundOpacity(1);
+              setIsImageLoading(false);
+            };
+          } else {
+            setIsImageLoading(false);
+          }
         })
         .catch(err => {
-            console.error("Image gen failed", err);
-            if (isMountedRef.current) setIsImageLoading(false);
+          console.error("Image gen failed", err);
+          if (isMountedRef.current) setIsImageLoading(false);
         });
 
     } catch (err) {
@@ -109,8 +109,8 @@ export const useSagaGamification = (language: 'en' | 'es') => {
       setError(err instanceof Error ? err.message : t('app.errorUnknown', language));
     } finally {
       if (isMountedRef.current) {
-          stopLoadingCycle();
-          setIsLoading(false);
+        stopLoadingCycle();
+        setIsLoading(false);
       }
     }
   }, [sagaInput, language, startLoadingCycle, stopLoadingCycle]);
@@ -137,37 +137,39 @@ export const useSagaGamification = (language: 'en' | 'es') => {
 
       if (newObjectives[objectiveIndex].completed) {
         setToast({ id: Date.now(), message: t('toast.successTitle', language) });
-        
-        // Micro-reward
-        generateFeedback({
-          theme: sagaInput.theme || 'adventure',
-          role: newMissionState.roleAndObjective,
-          completedTask: newObjectives[objectiveIndex].missionTask,
-          isFinal: false,
-        }, language).then(feat => {
-             if (isMountedRef.current) setCompletedFeats(prev => [...prev, feat]);
-        });
-        
-        // Final reward
+
+        // Final reward check
         const allComplete = newObjectives.every(obj => obj.completed);
-        if (allComplete) {
-            setFinalFeedback({ content: null, isLoading: true });
-            generateFeedback({
-                theme: sagaInput.theme || 'adventure',
-                role: newMissionState.roleAndObjective,
-                completedTask: newObjectives[objectiveIndex].missionTask,
-                isFinal: true,
-            }, language)
+
+        if (!allComplete) {
+          // Micro-reward
+          generateFeedback({
+            theme: sagaInput.theme || 'adventure',
+            role: newMissionState.roleAndObjective,
+            completedTask: newObjectives[objectiveIndex].missionTask,
+            isFinal: false,
+          }, language).then(feat => {
+            if (isMountedRef.current) setCompletedFeats(prev => [...prev, feat]);
+          });
+        } else {
+          // Final reward
+          setFinalFeedback({ content: null, isLoading: true });
+          generateFeedback({
+            theme: sagaInput.theme || 'adventure',
+            role: newMissionState.roleAndObjective,
+            completedTask: newObjectives[objectiveIndex].missionTask,
+            isFinal: true,
+          }, language)
             .then(final => {
-                 if (isMountedRef.current) setFinalFeedback({ content: final, isLoading: false });
+              if (isMountedRef.current) setFinalFeedback({ content: final, isLoading: false });
             })
             .catch(() => {
-                if (isMountedRef.current) {
-                    setFinalFeedback({
-                        content: { id: 'fallback', title: t('fallbackFeedback', language).title, message: t('fallbackFeedback', language).message },
-                        isLoading: false
-                    });
-                }
+              if (isMountedRef.current) {
+                setFinalFeedback({
+                  content: { id: 'fallback', title: t('fallbackFeedback', language).title, message: t('fallbackFeedback', language).message },
+                  isLoading: false
+                });
+              }
             });
         }
       }
@@ -201,10 +203,10 @@ export const useSagaGamification = (language: 'en' | 'es') => {
     finalFeedback,
     setFinalFeedback,
     actions: {
-        generateMission,
-        clearAll,
-        toggleObjective,
-        returnToEdit
+      generateMission,
+      clearAll,
+      toggleObjective,
+      returnToEdit
     }
   };
 };
