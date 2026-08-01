@@ -1,5 +1,6 @@
 {
   "name": "Sagaflow MVP",
   "description": "SagaFlow transforms your to-do lists into epic, narrative quests. By turning mundane tasks into gamified missions within a universe of your choice, it helps combat procrastination and makes productivity an adventure.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": []
 }
